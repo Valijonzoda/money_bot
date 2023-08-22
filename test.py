@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import ParseMode, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 
-TOKEN = '5659099473:AAGeYmYOVlJDI0l-mM66PJkDpGyjyRKMKEk'
+TOKEN = '6562742616:AAEahEb3TdScf5jSqtsFxQVdsMU8SufZrbc'
 
 
 # Initialize bot and dispatcher

@@ -3,17 +3,17 @@ import json
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ParseMode, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
 
 TOKEN = '6562742616:AAEahEb3TdScf5jSqtsFxQVdsMU8SufZrbc'
 
-# Инициализация бота и диспетчера
+# Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
-logging.basicConfig(level=logging.INFO)
+dp.middleware.setup(LoggingMiddleware())
 
 DATA_FILE = "savings_data.json"
 
-# Загрузка данных из файла
 try:
     with open(DATA_FILE, 'r') as f:
         user_data = json.load(f)
@@ -21,7 +21,6 @@ except (FileNotFoundError, json.JSONDecodeError):
     user_data = {}
 
 def save_data_to_file():
-    """Сохраняет данные в файл."""
     with open(DATA_FILE, 'w') as f:
         json.dump(user_data, f)
 
@@ -44,7 +43,6 @@ async def start(message: types.Message):
     await message.answer('Пожалуйста, отправьте сумму, которую вы хотите добавить.', reply_markup=keyboard)
 
 def is_integer(value):
-    """Проверяет, является ли значение целым числом."""
     try:
         int(value)
         return True
@@ -67,7 +65,7 @@ async def handle_preset_values(message: types.Message):
     await message.answer(f"Успешно добавлена! Текущая сумма: {total}c", reply_markup=keyboard)
 
 @dp.message_handler(lambda message: is_integer(message.text))
-async def handle_custom_value(message: types.Message):
+async def sum_numbers(message: types.Message):
     user_id = str(message.from_user.id)
     number = int(message.text)
     current_date = datetime.now().strftime("%d-%m-%Y")
@@ -79,11 +77,43 @@ async def handle_custom_value(message: types.Message):
     save_data_to_file()
 
     total = sum(item["amount"] for item in user_data[user_id])
-    await message.answer(f"Текущая сумма: {total}c", reply_markup=keyboard)
+    await message.answer(f"Успешно добавлена! Текущая сумма: {total}c", reply_markup=keyboard)
 
 @dp.message_handler(lambda message: message.text in ['Показать сбережения', 'Неделя', 'Месяц', 'Обнулить'])
 async def handle_buttons(message: types.Message):
-    # ... [Оставить этот код без изменений]
+    user_id = str(message.from_user.id)
+    today = datetime.now()
+    action = message.text
+
+    if action == 'Неделя':
+        end_date = today
+        start_date = today - timedelta(days=7)
+        title = "<i>За неделю</i>"
+    elif action == 'Месяц':
+        end_date = today
+        start_date = today - timedelta(days=30)
+        title = "<i>За месяц</i>"
+    elif action == 'Обнулить':
+        user_data[user_id] = []
+        save_data_to_file()
+        await message.answer("Ваши сбережения были обнулены.", reply_markup=keyboard)
+        return
+    else:
+        start_date = None
+        end_date = None
+        title = "<b>Экономия за всё время:</b>"
+
+    if user_id not in user_data or not user_data[user_id]:
+        await message.answer("У вас пока нет сбережений.", reply_markup=keyboard)
+        return
+
+    infotext = "\n<b>№   Сумма        Дата</b>\n"
+    savings_list = [f"<i>{idx + 1})</i> <b>    {item['amount']}</b>{' ' * (15 - len(str(item['amount'])))}   {item['date'][:5]}" 
+                    for idx, item in enumerate(user_data[user_id]) 
+                    if not start_date or (datetime.strptime(item['date'], "%d-%m-%Y") >= start_date and datetime.strptime(item['date'], "%d-%m-%Y") <= end_date)]
+    total_sum = sum(item["amount"] for item in user_data[user_id] if not start_date or (datetime.strptime(item['date'], "%d-%m-%Y") >= start_date and datetime.strptime(item['date'], "%d-%m-%Y") <= end_date))
+    text = title + infotext + "\n".join(savings_list) + f"\n\nИтого: <b>{total_sum}</b><i>cомон</i>"
+    await message.answer(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
 
 @dp.message_handler(lambda message: not is_integer(message.text))
 async def non_integer_message(message: types.Message):

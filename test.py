@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import ParseMode, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 
-TOKEN = '6562742616:AAEahEb3TdScf5jSqtsFxQVdsMU8SufZrbc'
+TOKEN = '********************************************'
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
